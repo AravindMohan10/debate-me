@@ -1,0 +1,20 @@
+Build main.py — the CLI entry point for DebateMe.
+
+It should:
+1. Ask user for their name (user_id), debate topic, and their stance
+2. Call initialize_debate from debate_engine.py
+3. Show any remembered patterns from previous sessions if they exist 
+   — this is the key Mem0 moment, show the user what the app already knows about them
+4. Run the debate loop:
+   - User types their argument
+   - Call analyze_argument first
+   - Call get_opponent_response
+   - Print opponent response
+   - Show a subtle hint of what pattern was detected this turn
+5. User types 'quit' to end
+6. Call end_debate, print the coach summary
+7. Tell user their patterns have been saved for next session
+
+Keep it clean CLI. No frameworks. Just input/output. 
+Make the Mem0 memory reveal moment dramatic — 
+when it shows what it remembers about you, it should feel unsettling.
