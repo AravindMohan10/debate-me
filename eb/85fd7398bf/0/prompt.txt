@@ -1,0 +1,27 @@
+implement debate_engine.py — the core debate brain.
+
+Functions to implement:
+
+1. initialize_debate(topic, user_stance, user_id)
+   - Pull existing patterns for this user from memory.py
+   - Build system prompt that argues opposite side AND exploits known weaknesses
+   - Return session object with topic, stance, history, loaded patterns
+
+2. get_opponent_response(session, user_argument)
+   - Send user argument to Groq with full debate history
+   - Opponent should be aggressive, specific, exploit known weaknesses
+   - Return opponent response as string
+
+3. analyze_argument(session, user_argument)
+   - Detect patterns in how user argued this turn
+   - Look for: avoiding emotions, conceding too fast, only using data, repeating points
+   - Return dict of detected patterns
+
+4. end_debate(session, user_id)
+   - Summarize patterns observed across full session
+   - Store session summary and new patterns via memory.py
+   - Return session summary dict
+
+memory.py already exists and works — import from it directly.
+Use GROQ_API_KEY from .env via python-dotenv.
+No CLI code here, just the engine.

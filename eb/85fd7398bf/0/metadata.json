@@ -1,0 +1,49 @@
+{
+  "cli_version": "0.6.1",
+  "checkpoint_id": "eb85fd7398bf",
+  "session_id": "ba9d77a2-c0ff-4e2a-832f-6bb7c145d7a9",
+  "strategy": "manual-commit",
+  "created_at": "2026-05-15T10:13:28.128468Z",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "debate_engine.py"
+  ],
+  "agent": "Claude Code",
+  "model": "claude-sonnet-4-6",
+  "turn_id": "fb05afc2990e",
+  "token_usage": {
+    "input_tokens": 5,
+    "cache_creation_tokens": 17571,
+    "cache_read_tokens": 52079,
+    "output_tokens": 8545,
+    "api_call_count": 3
+  },
+  "session_metrics": {
+    "turn_count": 1
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-05-15T10:13:28.122325Z",
+    "agent_lines": 344,
+    "agent_removed": 0,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 344,
+    "total_lines_changed": 344,
+    "agent_percentage": 100,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 23,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        "claude.md": 23
+      }
+    }
+  ]
+}
