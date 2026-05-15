@@ -1,0 +1,80 @@
+{
+  "cli_version": "0.6.1",
+  "checkpoint_id": "99eeb809f1f4",
+  "session_id": "8e4f9e12-9c44-4180-9c20-a877a9fd9764",
+  "strategy": "manual-commit",
+  "created_at": "2026-05-15T10:02:24.602401Z",
+  "branch": "main",
+  "checkpoints_count": 4,
+  "files_touched": [
+    ".gitignore",
+    "memory.py",
+    "requirements.txt"
+  ],
+  "agent": "Cursor",
+  "model": "default",
+  "turn_id": "342555ed7d8b",
+  "session_metrics": {
+    "turn_count": 7
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-05-15T10:02:24.59353Z",
+    "agent_lines": 240,
+    "agent_removed": 0,
+    "human_added": 46,
+    "human_modified": 22,
+    "human_removed": 0,
+    "total_committed": 297,
+    "total_lines_changed": 308,
+    "agent_percentage": 77.92207792207793,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 149,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        ".claude/agents/entire-search.md": 25,
+        ".claude/settings.json": 84,
+        ".cursor/hooks.json": 40
+      }
+    },
+    {
+      "checkpoint_number": 2,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 153,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 3,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 4,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 5,
+      "user_lines_added": 34,
+      "user_lines_removed": 11,
+      "agent_lines_added": 434,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        "memory.py": 34
+      },
+      "user_removed_per_file": {
+        "memory.py": 11
+      }
+    }
+  ]
+}

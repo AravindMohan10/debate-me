@@ -1,0 +1,95 @@
+.env
+__pycache__/
+*.pyc
+.DS_Store
+create this
+
+---
+
+.env
+__pycache__/
+*.pyc
+.DS_Store
+create this
+
+---
+
+I'm building a CLI app called DebateMe  , an adversarial debate partner that argues the opposite of whatever position you take, and gets smarter about how you specifically argue over multiple sessions.
+The core experience:
+
+User gives a topic and their stance
+The app argues the other side using Groq (llama3 via groq API)
+At the end of each session it analyzes how the user argued: their weaknesses, tendencies, blind spots, rhetorical habits
+Mem0 stores these patterns persistently across sessions
+Next session the app retrieves these patterns and uses them to specifically exploit how this user argues, not just argue the other side generically
+
+this iteration we are building memory.py : This module is the entire Mem0 integration layer. 
+it should have:
+store_debate_pattern(user_id, pattern_type, content):
+stores an observed argumentation pattern about the user
+Pattern types: weakness, tendency, blind_spot, rhetorical_habit
+Example: user_id="aravind", pattern_type="weakness", content="concedes too early when challenged on ethics"
+
+get_user_patterns(user_id):
+Retrieves all stored patterns for a user
+Returns structured list of patterns with their types
+
+get_relevant_patterns(user_id, topic):
+Semantic search: retrieves patterns most relevant to the current debate topic
+Example: topic="climate policy" should surface patterns about how user handles data-heavy arguments
+
+store_session_summary(user_id, topic, stance, patterns_observed)
+Stores a complete session summary after debate ends
+patterns_observed is a list of patterns detected during that session
+
+Use MEM0_API_KEY from environment variables via python-dotenv. The Mem0 client should be initialized once at module level. Add clean error handling, if Mem0 is unreachable, fail gracefully with a clear error message, don't crash the whole app.
+No CLI code here. Just the memory module. Clean, well-commented, production-minded Python.
+
+---
+
+I'm building a CLI app called DebateMe  , an adversarial debate partner that argues the opposite of whatever position you take, and gets smarter about how you specifically argue over multiple sessions.
+The core experience:
+
+User gives a topic and their stance
+The app argues the other side using Groq (llama3 via groq API)
+At the end of each session it analyzes how the user argued: their weaknesses, tendencies, blind spots, rhetorical habits
+Mem0 stores these patterns persistently across sessions
+Next session the app retrieves these patterns and uses them to specifically exploit how this user argues, not just argue the other side generically
+
+this iteration we are building memory.py : This module is the entire Mem0 integration layer. 
+it should have:
+store_debate_pattern(user_id, pattern_type, content):
+stores an observed argumentation pattern about the user
+Pattern types: weakness, tendency, blind_spot, rhetorical_habit
+Example: user_id="aravind", pattern_type="weakness", content="concedes too early when challenged on ethics"
+
+get_user_patterns(user_id):
+Retrieves all stored patterns for a user
+Returns structured list of patterns with their types
+
+get_relevant_patterns(user_id, topic):
+Semantic search: retrieves patterns most relevant to the current debate topic
+Example: topic="climate policy" should surface patterns about how user handles data-heavy arguments
+
+store_session_summary(user_id, topic, stance, patterns_observed)
+Stores a complete session summary after debate ends
+patterns_observed is a list of patterns detected during that session
+
+Use MEM0_API_KEY from environment variables via python-dotenv. The Mem0 client should be initialized once at module level. Add clean error handling, if Mem0 is unreachable, fail gracefully with a clear error message, don't crash the whole app.
+No CLI code here. Just the memory module. Clean, well-commented, production-minded Python.
+
+---
+
+use moodenv venv from the root , it has all installed
+
+---
+
+use moodenv venv from the root , it has all installed
+
+---
+
+moodenv is at the user level , not the project level , aravindmohan
+
+---
+
+moodenv is at the user level , not the project level , aravindmohan
