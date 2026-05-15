@@ -1,0 +1,45 @@
+There's a deduplication problem in how we store debate patterns.
+
+Right now if a user "avoids emotion" in session 1 and again in session 2, 
+Mem0 stores two separate memories:
+
+  [TENDENCY] Avoids emotional appeals (observed 2x on topic: Immigration)
+  [TENDENCY] Avoids emotional appeals (observed 3x on topic: AGI)
+
+What it should show is one consolidated memory:
+
+  [TENDENCY] Avoids emotional appeals (observed 5x across 2 sessions)
+
+Fix store_debate_pattern in memory.py so that before storing a new pattern, 
+it checks if a similar one already exists for this user using get_user_patterns. 
+If it finds a match on pattern_type and similar content, update the count 
+instead of creating a duplicate.
+
+The retrieved patterns shown at session start in main.py should also reflect 
+this — one clean line per pattern type, not one line per session.
+
+Keep it simple. Don't over-engineer it.
+
+---
+
+There's a deduplication problem in how we store debate patterns.
+
+Right now if a user "avoids emotion" in session 1 and again in session 2, 
+Mem0 stores two separate memories:
+
+  [TENDENCY] Avoids emotional appeals (observed 2x on topic: Immigration)
+  [TENDENCY] Avoids emotional appeals (observed 3x on topic: AGI)
+
+What it should show is one consolidated memory:
+
+  [TENDENCY] Avoids emotional appeals (observed 5x across 2 sessions)
+
+Fix store_debate_pattern in memory.py so that before storing a new pattern, 
+it checks if a similar one already exists for this user using get_user_patterns. 
+If it finds a match on pattern_type and similar content, update the count 
+instead of creating a duplicate.
+
+The retrieved patterns shown at session start in main.py should also reflect 
+this — one clean line per pattern type, not one line per session.
+
+Keep it simple. Don't over-engineer it.
