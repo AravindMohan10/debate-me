@@ -314,18 +314,14 @@ def end_debate(session: dict[str, Any], user_id: str) -> dict[str, Any]:
         for pname in entry["patterns"]:
             pattern_counts[pname] = pattern_counts.get(pname, 0) + 1
 
-    # --- Persist each observed pattern to memory ---
+    # --- Persist each observed pattern to memory (deduped in memory.py) ---
     patterns_observed_text: list[str] = []
     for key, count in pattern_counts.items():
         if key not in _PATTERN_LABELS:
             continue
         ptype, base_content = _PATTERN_LABELS[key]
-        full_content = (
-            f"{base_content} "
-            f"(observed {count}x on topic: {session['topic']})"
-        )
-        store_debate_pattern(user_id, ptype, full_content)
-        patterns_observed_text.append(full_content)
+        store_debate_pattern(user_id, ptype, base_content, observations=count)
+        patterns_observed_text.append(f"{base_content} (×{count} this session)")
 
     # --- Persist session summary ---
     store_session_summary(

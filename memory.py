@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import logging
 import os
+import re
 from pathlib import Path
 from typing import Any, Literal, TypedDict
 
@@ -29,6 +30,12 @@ VALID_PATTERN_TYPES: frozenset[str] = frozenset(
 # Metadata keys — keep stable so retrieval filters stay reliable.
 _KIND_DEBATE_PATTERN = "debate_pattern"
 _KIND_SESSION_SUMMARY = "session_summary"
+
+# Strip legacy "(observed Nx on topic: …)" and new "(observed Nx across M sessions)" suffixes.
+_OBSERVED_SUFFIX = re.compile(
+    r"\s*\(observed\s+\d+x(?:\s+on\s+topic:.*?|\s+across\s+\d+\s+sessions?)\)\s*$",
+    re.IGNORECASE,
+)
 
 
 class DebatePattern(TypedDict):
@@ -129,6 +136,100 @@ def _normalize_pattern_type(raw: str | None) -> str | None:
     return None
 
 
+def _base_content(text: str) -> str:
+    """Canonical pattern text without observation suffixes."""
+    return _OBSERVED_SUFFIX.sub("", text.strip()).strip()
+
+
+def _normalize_for_match(text: str) -> str:
+    return " ".join(_base_content(text).lower().split())
+
+
+def _contents_match(a: str, b: str) -> bool:
+    na, nb = _normalize_for_match(a), _normalize_for_match(b)
+    return bool(na) and na == nb
+
+
+def _parse_counts(metadata: dict[str, Any], memory_text: str) -> tuple[int, int, str]:
+    """Return (observation_count, session_count, base_content)."""
+    base = _base_content(metadata.get("content") or memory_text)
+    obs = metadata.get("observation_count")
+    sessions = metadata.get("session_count")
+
+    if obs is None:
+        m = re.search(r"observed\s+(\d+)x", memory_text, re.IGNORECASE)
+        obs = int(m.group(1)) if m else 1
+    if sessions is None:
+        m = re.search(r"across\s+(\d+)\s+sessions?", memory_text, re.IGNORECASE)
+        sessions = int(m.group(1)) if m else 1
+
+    return int(obs), int(sessions), base
+
+
+def _format_display(base: str, observations: int, sessions: int) -> str:
+    if observations <= 1 and sessions <= 1:
+        return base
+    session_word = "session" if sessions == 1 else "sessions"
+    return f"{base} (observed {observations}x across {sessions} {session_word})"
+
+
+def _fetch_pattern_records(client, user_id: str) -> list[dict[str, Any]]:
+    response = client.get_all(
+        filters={"user_id": user_id},
+        page=1,
+        page_size=200,
+    )
+    records = response.get("results", []) if isinstance(response, dict) else []
+    return [
+        r
+        for r in records
+        if (r.get("metadata") or {}).get("kind") == _KIND_DEBATE_PATTERN
+    ]
+
+
+def _consolidate_records(records: list[dict[str, Any]]) -> list[DebatePattern]:
+    """Merge duplicate patterns (same type + base content) into one entry."""
+    groups: dict[tuple[str, str], dict[str, Any]] = {}
+
+    for record in records:
+        metadata = record.get("metadata") or {}
+        pattern_type = _normalize_pattern_type(metadata.get("pattern_type"))
+        if not pattern_type:
+            continue
+
+        memory_text = record.get("memory", "")
+        obs, sessions, base = _parse_counts(metadata, memory_text)
+        if not base:
+            continue
+
+        key = (pattern_type, _normalize_for_match(base))
+        if key not in groups:
+            groups[key] = {
+                "id": record.get("id", ""),
+                "pattern_type": pattern_type,
+                "base": base,
+                "observation_count": obs,
+                "session_count": sessions,
+                "created_at": record.get("created_at"),
+            }
+        else:
+            g = groups[key]
+            g["observation_count"] += obs
+            g["session_count"] += sessions
+
+    return [
+        DebatePattern(
+            id=g["id"],
+            pattern_type=g["pattern_type"],
+            content=_format_display(
+                g["base"], g["observation_count"], g["session_count"]
+            ),
+            created_at=g["created_at"],
+        )
+        for g in groups.values()
+    ]
+
+
 def _memory_to_pattern(record: dict[str, Any]) -> DebatePattern | None:
     """Map a Mem0 memory record to a structured debate pattern."""
     metadata = record.get("metadata") or {}
@@ -136,14 +237,15 @@ def _memory_to_pattern(record: dict[str, Any]) -> DebatePattern | None:
         return None
 
     pattern_type = _normalize_pattern_type(metadata.get("pattern_type"))
-    content = metadata.get("content") or record.get("memory", "")
-    if not pattern_type or not content:
+    memory_text = record.get("memory", "")
+    obs, sessions, base = _parse_counts(metadata, memory_text)
+    if not pattern_type or not base:
         return None
 
     return DebatePattern(
         id=record.get("id", ""),
         pattern_type=pattern_type,
-        content=content,
+        content=_format_display(base, obs, sessions),
         created_at=record.get("created_at"),
     )
 
@@ -152,12 +254,15 @@ def store_debate_pattern(
     user_id: str,
     pattern_type: str,
     content: str,
+    observations: int = 1,
 ) -> dict[str, Any] | None:
     """
     Store an observed argumentation pattern about the user.
 
+    If the same pattern_type + base content already exists, increments the
+    observation and session counts instead of creating a duplicate memory.
+
     Pattern types: weakness, tendency, blind_spot, rhetorical_habit.
-    Uses infer=False so the observation is stored verbatim.
     """
     if pattern_type not in VALID_PATTERN_TYPES:
         logger.error(
@@ -171,22 +276,50 @@ def store_debate_pattern(
         logger.error("store_debate_pattern requires non-empty user_id and content")
         return None
 
+    observations = max(1, observations)
+    base = _base_content(content)
     label = pattern_type.replace("_", " ")
-    message_content = f"Debate pattern ({label}): {content.strip()}"
 
-    def _add(client):
+    def _store_or_update(client):
+        for record in _fetch_pattern_records(client, user_id):
+            meta = record.get("metadata") or {}
+            existing_type = _normalize_pattern_type(meta.get("pattern_type"))
+            if existing_type != pattern_type:
+                continue
+
+            _, _, existing_base = _parse_counts(meta, record.get("memory", ""))
+            if _contents_match(base, existing_base):
+                old_obs, old_sessions, _ = _parse_counts(meta, record.get("memory", ""))
+                new_obs = old_obs + observations
+                new_sessions = old_sessions + 1
+                display = _format_display(base, new_obs, new_sessions)
+                return client.update(
+                    record["id"],
+                    text=f"Debate pattern ({label}): {display}",
+                    metadata={
+                        "kind": _KIND_DEBATE_PATTERN,
+                        "pattern_type": pattern_type,
+                        "content": base,
+                        "observation_count": new_obs,
+                        "session_count": new_sessions,
+                    },
+                )
+
+        display = _format_display(base, observations, 1)
         return client.add(
-            messages=[{"role": "user", "content": message_content}],
+            messages=[{"role": "user", "content": f"Debate pattern ({label}): {display}"}],
             user_id=user_id,
             metadata={
                 "kind": _KIND_DEBATE_PATTERN,
                 "pattern_type": pattern_type,
-                "content": content.strip(),
+                "content": base,
+                "observation_count": observations,
+                "session_count": 1,
             },
             infer=False,
         )
 
-    return _mem0_call("store_debate_pattern", _add, default=None)
+    return _mem0_call("store_debate_pattern", _store_or_update, default=None)
 
 
 def get_user_patterns(user_id: str) -> list[DebatePattern]:
@@ -196,18 +329,7 @@ def get_user_patterns(user_id: str) -> list[DebatePattern]:
         return []
 
     def _fetch(client):
-        response = client.get_all(
-            filters={"user_id": user_id},
-            page=1,
-            page_size=200,
-        )
-        records = response.get("results", []) if isinstance(response, dict) else []
-        patterns: list[DebatePattern] = []
-        for record in records:
-            pattern = _memory_to_pattern(record)
-            if pattern:
-                patterns.append(pattern)
-        return patterns
+        return _consolidate_records(_fetch_pattern_records(client, user_id))
 
     result = _mem0_call("get_user_patterns", _fetch, default=[])
     return result if result is not None else []
@@ -235,28 +357,15 @@ def get_relevant_patterns(user_id: str, topic: str) -> list[DebatePattern]:
             top_k=15,
         )
         records = response.get("results", []) if isinstance(response, dict) else []
-        patterns: list[DebatePattern] = []
-        seen_ids: set[str] = set()
+        debate_records = [
+            r
+            for r in records
+            if (r.get("metadata") or {}).get("kind") == _KIND_DEBATE_PATTERN
+        ]
+        if not debate_records:
+            debate_records = _fetch_pattern_records(client, user_id)
 
-        for record in records:
-            pattern = _memory_to_pattern(record)
-            if pattern and pattern["id"] not in seen_ids:
-                seen_ids.add(pattern["id"])
-                patterns.append(pattern)
-
-        # Prefer higher semantic scores when Mem0 returns them.
-        patterns.sort(
-            key=lambda p: next(
-                (
-                    r.get("score", 0)
-                    for r in records
-                    if r.get("id") == p["id"]
-                ),
-                0,
-            ),
-            reverse=True,
-        )
-        return patterns
+        return _consolidate_records(debate_records)
 
     result = _mem0_call("get_relevant_patterns", _search, default=[])
     return result if result is not None else []
